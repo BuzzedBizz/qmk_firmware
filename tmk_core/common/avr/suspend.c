@@ -26,6 +26,10 @@
 #    include "rgblight.h"
 #endif
 
+#ifdef RGB_MATRIX_ENABLE
+#    include "rgb_matrix.h"
+#endif
+
 /** \brief Suspend idle
  *
  * FIXME: needs doc
@@ -125,6 +129,10 @@ static void power_down(uint8_t wdto) {
  * FIXME: needs doc
  */
 void suspend_power_down(void) {
+#ifdef RGB_MATRIX_ENABLE
+    rgb_matrix_task();
+#endif
+
     suspend_power_down_kb();
 
 #ifndef NO_SUSPEND_POWER_DOWN
