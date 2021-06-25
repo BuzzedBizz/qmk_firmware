@@ -5,7 +5,7 @@
 #define PRODUCT_ID      0x0058
 #define DEVICE_VER      0x0100
 #define MANUFACTURER    Keyhive
-#define PRODUCT         Lily58 Glow
+#define PRODUCT         "Lily58 Glow"
 
 /* key matrix size */
 // Rows are doubled-up
@@ -30,13 +30,23 @@
 
 /* LED Setup */
 #ifdef RGB_MATRIX_ENABLE
-#    define RGBLED_NUM 49  // Number of LEDs
+#    define RGBLED_NUM 70  // Number of LEDs
 #    define DRIVER_LED_TOTAL RGBLED_NUM
 
 #    define RGB_MATRIX_MAXIMUM_BRIGHTNESS 120 // Sane brightness values so the board has enough power to operate
-#    define RGBLED_SPLIT { 26, 23 }
+#    define RGBLED_SPLIT { 35, 35 }
 #    define RGB_MATRIX_SPLIT RGBLED_SPLIT
 #endif
 
 /* serial setup */
 #define SOFT_SERIAL_PIN D2
+
+#ifdef OPENRGB_ENABLE
+#define OPENRGB_ZONES_COUNT 1
+#define OPENRGB_USE_CUSTOM_MATRIX_MAP
+#define OPENRGB_DIRECT_MODE_USE_UNIVERSAL_BRIGHTNESS
+#ifdef OPENRGB_USE_CUSTOM_MATRIX_MAP
+    #define OPENRGB_MATRIX_COLUMNS 12
+    #define OPENRGB_MATRIX_ROWS 5
+#endif
+#endif

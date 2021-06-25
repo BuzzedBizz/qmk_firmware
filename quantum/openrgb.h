@@ -16,7 +16,9 @@
 
 #pragma once
 
+#ifndef RAW_EPSIZE
 #define RAW_EPSIZE 64
+#endif
 
 // This is changed only when the command IDs change,
 // so OpenRGB can detect compatible firmware.
@@ -64,6 +66,18 @@ typedef struct PACKED {
     uint8_t key_index_to_physical_position_map[OPENRGB_MATRIX_ROWS][OPENRGB_MATRIX_COLUMNS];
 #endif
 } openrgb_config_t;
+
+// for split transfer
+#define LEDS_PER_UPDATE 1
+typedef struct {
+    uint8_t id;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+} led_update_t;
+
+// to keep track of things that may need to be updated
+extern uint8_t led_changes[RGBLED_NUM];
 
 extern const openrgb_config_t g_openrgb_config;
 extern RGB g_openrgb_direct_mode_colors[DRIVER_LED_TOTAL];

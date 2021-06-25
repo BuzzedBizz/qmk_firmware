@@ -26,6 +26,10 @@ static pin_t encoders_pad[] = ENCODERS_PAD_A;
 #    include "rgb_matrix.h"
 #endif
 
+#    if defined(RGB_MATRIX_ENABLE) && defined(RGB_MATRIX_SPLIT) && defined(OPENRGB_ENABLE)
+#    include "openrgb.h"
+#    endif
+
 #if defined(USE_I2C)
 
 #    include "i2c_master.h"
@@ -224,6 +228,10 @@ typedef struct _Serial_s2m_buffer_t {
     uint8_t      encoder_state[NUMBER_OF_ENCODERS];
 #    endif
 
+#    if defined(RGB_MATRIX_ENABLE) && defined(RGB_MATRIX_SPLIT) && defined(OPENRGB_ENABLE)
+    uint8_t acknowledge[LEDS_PER_UPDATE]; // id of an led that was set
+#    endif
+
 } Serial_s2m_buffer_t;
 
 typedef struct _Serial_m2s_buffer_t {
@@ -249,6 +257,9 @@ typedef struct _Serial_m2s_buffer_t {
 #    if defined(RGB_MATRIX_ENABLE) && defined(RGB_MATRIX_SPLIT)
     rgb_config_t rgb_matrix;
     bool         rgb_suspend_state;
+#    endif
+#    if defined(RGB_MATRIX_ENABLE) && defined(RGB_MATRIX_SPLIT) && defined(OPENRGB_ENABLE)
+    led_update_t led_values[LEDS_PER_UPDATE];
 #    endif
 } Serial_m2s_buffer_t;
 
@@ -373,6 +384,42 @@ bool transport_master(matrix_row_t master_matrix[], matrix_row_t slave_matrix[])
     serial_m2s_buffer.rgb_suspend_state = g_suspend_state;
 #    endif
 
+#    if defined(RGB_MATRIX_ENABLE) && defined(RGB_MATRIX_SPLIT) && defined(OPENRGB_ENABLE)
+    uint8_t num_found = 0;
+    const uint8_t num_rgb_leds_split[2] = RGBLED_SPLIT;
+
+    uint8_t start = num_rgb_leds_split[0];
+    static uint8_t curr = 255;
+    uint8_t stop = RGBLED_NUM;
+
+    while(curr < stop && num_found < LEDS_PER_UPDATE){
+        if (led_changes[curr] == 1){
+            led_update_t new_val = {
+                .id = curr,
+                .r = g_openrgb_direct_mode_colors[curr].r,
+                .g = g_openrgb_direct_mode_colors[curr].g,
+                .b = g_openrgb_direct_mode_colors[curr].b
+            };
+            serial_m2s_buffer.led_values[num_found++] = new_val;
+        }curr++;
+    }
+    if (curr >= stop){
+        curr = start;
+        while (num_found < LEDS_PER_UPDATE){
+            led_update_t new_val = {
+                .id = curr,
+                .r = g_openrgb_direct_mode_colors[curr].r,
+                .g = g_openrgb_direct_mode_colors[curr].g,
+                .b = g_openrgb_direct_mode_colors[curr].b
+            };
+            serial_m2s_buffer.led_values[num_found++] = new_val;
+        }
+    }
+    for(int i = 0; i < LEDS_PER_UPDATE; i++) {
+        led_changes[serial_s2m_buffer.acknowledge[i]] = 0;
+    }
+#    endif
+
 #    ifndef DISABLE_SYNC_TIMER
     serial_m2s_buffer.sync_timer        = sync_timer_read32() + SYNC_TIMER_OFFSET;
 #    endif
@@ -415,6 +462,18 @@ void transport_slave(matrix_row_t master_matrix[], matrix_row_t slave_matrix[]) 
 #    if defined(RGB_MATRIX_ENABLE) && defined(RGB_MATRIX_SPLIT)
     rgb_matrix_config = serial_m2s_buffer.rgb_matrix;
     g_suspend_state   = serial_m2s_buffer.rgb_suspend_state;
+#    endif
+
+#    if defined(RGB_MATRIX_ENABLE) && defined(RGB_MATRIX_SPLIT) && defined(OPENRGB_ENABLE)
+    for(int i = 0; i < LEDS_PER_UPDATE; i++){
+        uint8_t led = serial_m2s_buffer.led_values[i].id;
+        g_openrgb_direct_mode_colors[led].r = serial_m2s_buffer.led_values[i].r;
+        g_openrgb_direct_mode_colors[led].g = serial_m2s_buffer.led_values[i].g;
+        g_openrgb_direct_mode_colors[led].b = serial_m2s_buffer.led_values[i].b;
+
+        serial_s2m_buffer.acknowledge[i] = led;
+    }
+
 #    endif
 }
 

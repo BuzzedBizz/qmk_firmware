@@ -37,7 +37,7 @@
 #    define OPENRGB_DIRECT_MODE_STARTUP_GREEN 255
 #endif
 
-RGB g_openrgb_direct_mode_colors[DRIVER_LED_TOTAL] = {[0 ... DRIVER_LED_TOTAL - 1] = 
+RGB g_openrgb_direct_mode_colors[DRIVER_LED_TOTAL] = {[0 ... DRIVER_LED_TOTAL - 1] =
     {OPENRGB_DIRECT_MODE_STARTUP_GREEN, OPENRGB_DIRECT_MODE_STARTUP_RED, OPENRGB_DIRECT_MODE_STARTUP_BLUE}};
 static const uint8_t openrgb_rgb_matrix_effects_indexes[] = {
     1,  2,
@@ -156,6 +156,8 @@ static const uint8_t openrgb_rgb_matrix_effects_indexes[] = {
 };
 static uint8_t raw_hid_buffer[RAW_EPSIZE];
 
+uint8_t led_changes[DRIVER_LED_TOTAL];
+
 void raw_hid_receive(uint8_t *data, uint8_t length) {
     switch (*data) {
         case OPENRGB_DIRECT_MODE_SET_SINGLE_LED:
@@ -247,6 +249,8 @@ void openrgb_direct_mode_set_single_led(uint8_t *data) {
         rgb_matrix_mode_noeeprom(1);
     }
 
+    led_changes[led] = 1;
+
     g_openrgb_direct_mode_colors[led].r = r;
     g_openrgb_direct_mode_colors[led].g = g;
     g_openrgb_direct_mode_colors[led].b = b;
@@ -261,6 +265,8 @@ void openrgb_direct_mode_set_leds(uint8_t *data) {
     if (rgb_matrix_get_mode() != 1) rgb_matrix_mode_noeeprom(1);
 
     for (int i = 0; i < number_leds; i++) {
+        led_changes[first_led + i] = 1;
+
         const uint8_t r = data[(i * 3) + 3];
         const uint8_t g = data[(i * 3) + 4];
         const uint8_t b = data[(i * 3) + 5];
@@ -495,7 +501,7 @@ void openrgb_get_led_value_in_matrix(uint8_t *data) {
     const uint8_t row    = data[2];
 
     raw_hid_buffer[0] = OPENRGB_GET_LED_VALUE_IN_MATRIX;
-    
+
 #ifdef OPENRGB_USE_CUSTOM_MATRIX_MAP
     if (col >= OPENRGB_MATRIX_COLUMNS || row >= OPENRGB_MATRIX_ROWS) {
         raw_hid_buffer[1] = OPENRGB_FAILURE;
